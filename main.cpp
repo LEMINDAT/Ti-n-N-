@@ -16,7 +16,7 @@ enum KeyPressSurfaces
     DIR_TOTAL
 };
 
-// Snake structure
+// Object structure
 struct Object {
     int x, y;
 
