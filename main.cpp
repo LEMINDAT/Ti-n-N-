@@ -1,5 +1,8 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #include <bits/stdc++.h>
+
+using namespace std;
 
 // Screen dimensions
 const int SCREEN_WIDTH = 640;
@@ -24,18 +27,44 @@ struct Object {
         return x == o.x && y == o.y;
     }
 
-    Object Random_generate(){
+    void RandomGenerate(){
         x = rand() % (SCREEN_WIDTH / CELL_SIZE) * CELL_SIZE;
         y = rand() % (SCREEN_HEIGHT / CELL_SIZE) * CELL_SIZE;
     }
 };
 
 // Function prototypes
-void draw(SDL_Renderer *renderer, const std::vector<Object>& snake, const Object& food);
-void update(std::vector<Object>& snake, Object& food, int& direction);
-bool checkCollision(const std::vector<Object>& snake);
-bool checkFoodCollision(const std::vector<Object>& snake, const Object& food);
-Object generateFood(const std::vector<Object>& snake);
+void draw(SDL_Renderer *renderer, vector<Object> snake, Object food);
+void update(vector<Object>& snake, Object& food, int& DIR);
+bool checkCollision(vector<Object> snake);
+bool checkFoodCollision(vector<Object> snake, Object food);
+Object generateFood(vector<Object> snake);
+
+SDL_Texture* loadTexture(SDL_Renderer* renderer, const string& imagePath) {
+    // Load image at specified path
+    SDL_Surface* loadedSurface = IMG_Load(imagePath.c_str());
+    if (loadedSurface == NULL) {
+        cerr << "Unable to load image " << imagePath << "! SDL_image Error: " << IMG_GetError() << endl;
+        return NULL;
+    }
+
+    // Create texture from surface pixels
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
+    if (texture == NULL) {
+        cerr << "Unable to create texture from " << imagePath << "! SDL Error: " << SDL_GetError() << endl;
+        return NULL;
+    }
+
+    // Get rid of old loaded surface
+    SDL_FreeSurface(loadedSurface);
+
+    return texture;
+}
+
+void drawBackground(SDL_Renderer* renderer, SDL_Texture* backgroundTexture) {
+    SDL_Rect destRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderCopy(renderer, backgroundTexture, NULL, &destRect);
+}
 
 int main(int argc, char *argv[]) {
     SDL_Window *window = NULL;
@@ -43,7 +72,7 @@ int main(int argc, char *argv[]) {
 
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
+        cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << endl;
         return 1;
     }
 
@@ -51,27 +80,40 @@ int main(int argc, char *argv[]) {
     window = SDL_CreateWindow("Snake Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                               SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (window == NULL) {
-        std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+        cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << endl;
         return 1;
     }
 
     // Create renderer
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == NULL) {
-        std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+        cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
+        return 1;
+    }
+
+    // Initialize SDL_image
+    int imgFlags = IMG_INIT_PNG;
+    if (!(IMG_Init(imgFlags) & imgFlags)) {
+        cerr << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << endl;
+        return 1;
+    }
+
+    // Load background image
+    SDL_Texture* backgroundTexture = loadTexture(renderer, "vecteezy_background-of-green-grass-field-cartoon-drawing_14572097.jpg");
+    if (backgroundTexture == NULL) {
         return 1;
     }
 
     // Seed random number generator
-    std::srand(std::time(NULL));
+    srand(time(NULL));
 
     // Initialize snake
-    std::vector<Object> snake;
+    vector<Object> snake;
     snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
 
     // Initialize food
     Object food = generateFood(snake);
-    int direction = rand()%DIR_TOTAL;
+    int DIR = rand()%DIR_TOTAL;
 
 
     bool quit = false;
@@ -86,19 +128,19 @@ int main(int argc, char *argv[]) {
             else if(e.type == SDL_KEYDOWN){
                 switch(e.key.keysym.sym){
                     case SDLK_UP:
-                    if(direction != DIR_DOWN) direction = DIR_UP;
+                    if(DIR != DIR_DOWN) DIR = DIR_UP;
                     break;
 
                     case SDLK_DOWN:
-                    if(direction != DIR_UP) direction = DIR_DOWN;
+                    if(DIR != DIR_UP) DIR = DIR_DOWN;
                     break;
 
                     case SDLK_LEFT:
-                    if(direction != DIR_RIGHT) direction = DIR_LEFT;
+                    if(DIR != DIR_RIGHT) DIR = DIR_LEFT;
                     break;
 
                     case SDLK_RIGHT:
-                    if(direction != DIR_LEFT) direction = DIR_RIGHT;
+                    if(DIR != DIR_LEFT) DIR = DIR_RIGHT;
                     break;
 
                 }
@@ -109,7 +151,9 @@ int main(int argc, char *argv[]) {
         SDL_RenderClear(renderer);
 
         // Update and draw
-        update(snake, food, direction);
+        update(snake, food, DIR);
+        // Draw background
+        drawBackground(renderer, backgroundTexture);
         draw(renderer, snake, food);
 
         // Update screen
@@ -127,7 +171,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void draw(SDL_Renderer *renderer, const std::vector<Object>& snake, const Object& food) {
+void draw(SDL_Renderer *renderer, vector<Object> snake, Object food) {
     // Draw snake
     for (const auto& segment : snake) {
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
@@ -142,7 +186,7 @@ void draw(SDL_Renderer *renderer, const std::vector<Object>& snake, const Object
     SDL_RenderFillRect(renderer, &rect);
 }
 
-void update(std::vector<Object>& snake, Object& food, int& direction) {
+void update(vector<Object>& snake, Object& food, int& DIR) {
     // Move snake
 
     Object prv_back = snake.back();
@@ -150,7 +194,7 @@ void update(std::vector<Object>& snake, Object& food, int& direction) {
         snake[i] = snake[i - 1];
     }
 
-    switch (direction) {
+    switch (DIR) {
         case DIR_UP:
             snake.front().y -= CELL_SIZE;
             break;
@@ -185,7 +229,7 @@ void update(std::vector<Object>& snake, Object& food, int& direction) {
     }
 }
 
-bool checkCollision(const std::vector<Object>& snake) {
+bool checkCollision(vector<Object> snake) {
     // Check collision with walls
 //    if (snake.front().x < 0 || snake.front().x >= SCREEN_WIDTH || snake.front().y < 0 || snake.front().y >= SCREEN_HEIGHT) {
 //        return true;
@@ -201,26 +245,21 @@ bool checkCollision(const std::vector<Object>& snake) {
     return false;
 }
 
-bool checkFoodCollision(const std::vector<Object>& snake, const Object& food) {
-    return snake.front().x == food.x && snake.front().y == food.y;
-}
-
-Object generateFood(const std::vector<Object>& snake) {
-    Object food;
-    bool valid = false;
-
-    while (!valid) {
-        food.Random_generate();
-
-        valid = true;
-        for (const auto& segment : snake) {
-            if (segment.x == food.x && segment.y == food.y) {
-                valid = false;
-                break;
-            }
+bool checkFoodCollision(vector<Object> snake, Object food) {
+    for(Object segment: snake){
+        if(segment == food){
+            return true;
         }
     }
+    return false;
+}
+
+Object generateFood(vector<Object> snake) {
+    Object food;
+
+    do{
+        food.RandomGenerate();
+    }while(checkFoodCollision(snake, food));
 
     return food;
 }
-

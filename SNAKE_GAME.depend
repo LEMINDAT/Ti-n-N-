@@ -9,8 +9,9 @@
 
 1711560994 source:d:\demo\snake\snake_game\ti-n-n-\test.cpp
 
-1711739298 source:d:\demo\snake\snake_game\ti-n-n-\main.cpp
+1711880791 source:d:\demo\snake\snake_game\ti-n-n-\main.cpp
 	<SDL.h>
+	<SDL_image.h>
 	<bits/stdc++.h>
 
 1706832967 c:\users\pc\downloads\sdl2-devel-2.30.0-mingw\sdl2-2.30.0\x86_64-w64-mingw32\include\sdl2\sdl.h
@@ -403,6 +404,12 @@
 
 1706832967 c:\users\pc\downloads\sdl2-devel-2.30.0-mingw\sdl2-2.30.0\x86_64-w64-mingw32\include\sdl2\sdl_misc.h
 	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1704144973 c:\users\pc\downloads\sdl2_image-devel-2.8.2-mingw\sdl2_image-2.8.2\x86_64-w64-mingw32\include\sdl2\sdl_image.h
+	"SDL.h"
+	"SDL_version.h"
 	"begin_code.h"
 	"close_code.h"
 
